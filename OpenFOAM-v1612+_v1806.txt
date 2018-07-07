@@ -1,0 +1,214 @@
+v1612+
+Ubuntu 16.04
+Here you have the following choices:
+
+ You can install from source, by either:
+ Following the official instructions from here: OpenFOAM+ Installation From Source
+ Or by following the detailed step-by-step instructions below...
+
+Discussion thread where you can ask questions about these steps: No thread available. Please a create a new thread in the forum.
+
+Steps:
+
+Switch to root mode (administrator), to install the necessary packages:
+sudo -s
+If the 'sudo' command tells you're not in the sudoers list, then run:
+su -
+Update the apt-get cache by running:
+apt-get update
+Install the necessary packages:
+apt-get install build-essential binutils-dev cmake flex bison zlib1g-dev qt4-dev-tools libqt4-dev libqtwebkit-dev gnuplot \
+libreadline-dev libncurses-dev libxt-dev libopenmpi-dev openmpi-bin libgmp-dev libmpfr-dev python python-dev
+Note: It has been reported that the following should also be executed in some cases, so that ParaView and CGAL will build properly:
+
+apt-get install libglu1-mesa-dev libqt4-opengl-dev
+Now exit from the root mode:
+exit
+Download and unpack (here you can copy-paste all in single go):
+#OpenFOAM+ downloading and installation
+cd ~
+mkdir OpenFOAM
+cd OpenFOAM
+wget "http://downloads.sourceforge.net/openfoamplus/files/OpenFOAM-v1612%2B.tgz?use_mirror=mesh" -O OpenFOAM-v1612+.tgz
+wget "http://downloads.sourceforge.net/openfoamplus/files/ThirdParty-v1612%2B.tgz?use_mirror=mesh" -O ThirdParty-v1612+.tgz
+ 
+tar -xzf OpenFOAM-v1612+.tgz
+tar -xzf ThirdParty-v1612+.tgz
+Optional: Let's make a few symbolic links that should ensure that the correct global MPI installation is used by this OpenFOAM+ installation:
+ln -s /usr/bin/mpicc.openmpi OpenFOAM-v1612+/bin/mpicc
+ln -s /usr/bin/mpirun.openmpi OpenFOAM-v1612+/bin/mpirun
+This way we avoid having problems in case there is more than one MPI toolbox installed in your Ubuntu system, for example if MPICH2 is installed and is the default MPI toolbox.
+
+For building OpenFOAM+ itself, it depends on whether you have installed the i686 or x86_64 architecture of Ubuntu. To check this, run:
+uname -m
+Now, accordingly:
+
+For i686:
+source $HOME/OpenFOAM/OpenFOAM-v1612+/etc/bashrc WM_ARCH_OPTION=32
+For x86_64, it depends on whether you need 64-bit integer support or not:
+For building with the normal 32-bit integer support (maximum 2.147¡Á109 cells, faces or points):
+source $HOME/OpenFOAM/OpenFOAM-v1612+/etc/bashrc
+For building with the normal 64-bit integer support (maximum 9.22¡Á1018 cells, faces or points):
+source $HOME/OpenFOAM/OpenFOAM-v1612+/etc/bashrc WM_LABEL_SIZE=64
+Save an alias in the personal .bashrc file, simply by running the following command:
+echo "alias of1612+='source \$HOME/OpenFOAM/OpenFOAM-v1612+/etc/bashrc $FOAM_SETTINGS'" >> $HOME/.bashrc
+Note: This last line means that whenever you start a new terminal window or tab, you should run the alias command associated to the OpenFOAM+ v1612+ shell environment. In other words, whenever you start a new terminal, you should run:
+of1612+
+For more information on this topic, read section Using aliases to help manage multiple OpenFOAM versions in the page Installation/Working with the Shell.
+Next step is to build ParaView 5.0.1, including with the ability to use Python and MPI, several steps are needed:
+Make sure you're running in the ThirdParty folder and that the correct Qt version is used:
+cd $WM_THIRD_PARTY_DIR
+export QT_SELECT=qt4
+For building ParaView with Python and MPI, it depends on whether you have installed the i686 or x86_64 architecture of Ubuntu. To check this, run:
+uname -m
+Now, accordingly:
+
+For i686:
+#this will take a while... somewhere between 30 minutes to 2 hours or more
+./makeParaView -python -mpi -python-lib /usr/lib/i386-linux-gnu/libpython2.7.so.1.0 > log.makePV 2>&1
+For x86_64:
+#this will take a while... somewhere between 30 minutes to 2 hours or more
+./makeParaView -python -mpi -python-lib /usr/lib/x86_64-linux-gnu/libpython2.7.so.1.0 > log.makePV 2>&1
+Once the makeParaView script is finished running, make sure to check the contents of the file log.makePV and check if there are any errors.
+Finally, update the shell environment:
+wmRefresh
+Now let's build OpenFOAM+:
+Go into OpenFOAM+'s main source folder and be certain that the correct Qt version is being used:
+cd $WM_PROJECT_DIR
+export QT_SELECT=qt4
+This next command will take a while... somewhere between 30 minutes to 3-6 hours:
+./Allwmake -j 4 > log.make 2>&1
+Note: The "4" refers to the number of cores to be used for building in parallel. In addition, the amount of RAM needed for building scales with the number of cores used, something like 1GB of RAM per core; a minimum of 1.5GB is needed for linking the libraries, which is not done in parallel.
+
+Run it a second time for getting a summary of the installation:
+./Allwmake -j 4 > log.make 2>&1
+Note: Technically, the build will stop as soon as the first error is found. Running a second time only makes it easier to sort through between what's already been built and where the crash occurred.
+
+To check if everything went well:
+Check if icoFoam is working, by running this command:
+icoFoam -help
+which should tell you something like this:
+
+Usage: icoFoam [OPTIONS]
+options:
+  -case <dir>       specify alternate case directory, default is the cwd
+  -noFunctionObjects
+                    do not execute functionObjects
+  -parallel         run in parallel
+  -roots <(dir1 .. dirN)>
+                    slave root directories for distributed running
+  -srcDoc           display source code in browser
+  -doc              display application documentation in browser
+  -help             print the usage
+Note: And keep in mind that you need to be careful with the letter case of the command. It's icoFoam, not icoFOAM.
+
+If the previous command failed to work properly, then edit the file log.make and check if there are any error messages. A few examples on how you can edit this file:
+By using kwrite:
+kwrite log.make
+By using gedit:
+gedit log.make
+By using nano:
+nano log.make
+You can then exit by using the key combination Ctrl+X and following any instructions it gives you.
+
+Note: It's the first error message that matters.
+
+If you don't understand the output, then please compress the log-file log.make and attach the compressed file to a post in the designated thread. 
+If you do not know how to create a compressed file, then try one of the following examples:
+You can compress the file with gzip by running this command:
+gzip < log.make > log.make.gz
+Then attach the resulting package file named log.make.gz to a post in the designated thread.
+
+Or you can compress one or more log-files into a tarball package file, by running this command:
+tar -czf logs.tar.gz log.*
+Then attach the resulting package file named logs.tar.gz to a post in the designated thread.
+
+Instructions on how to further diagnose the issue yourself, have a look at the section Common errors when building OpenFOAM from source code in the page FAQ/Installation and Running.
+Now you can go read the User Guide: OpenFOAM+ User Guide
+
+Reminder: Whenever you start a new terminal window or tab, you should run the alias command associated to the OpenFOAM+ v1612+ shell environment. In other words, run the following command whenever you start a new terminal:
+of1612+
+
+
+v1806
+Ubuntu 16.04
+Minimum recommended versions
+gcc: 4.8.5
+cmake: 3.3 (required for ParaView and CGAL build)
+boost: 1.48 (required for CGAL build)
+fftw: 3.3.7 (optional - required for FFT-related functionality)
+Qt: 4.8 (optional - required for ParaView build)
+System requirements for Ubuntu OS
+Install the dependencies by copying and pasting the following lines to the command line:
+sudo apt-get install build-essential flex bison cmake zlib1g-dev libboost-system-dev libboost-thread-dev libopenmpi-dev openmpi-bin gnuplot libreadline-dev libncurses-dev libxt-dev 
+sudo apt-get install qt4-dev-tools libqt4-dev libqt4-opengl-dev freeglut3-dev libqtwebkit-dev 
+Paralelisation OpenMPI library together with Scotch and GCAL libraries can be compiled from the ThirdParty directory or the system versions can be installed:
+sudo apt-get install libscotch-dev libcgal-dev 
+To check version of MPI library installed, run: mpirun --version (for Ubuntu 16.04 it will be version 1.10.2)
+To check compiler version installed, run: gcc --version (for Ubuntu 16.04 the system version will be 5.4.0)
+System version of cmake is 3.5.2 for Ubuntu 16.04 (cmake --version)
+System version of CGAL library is 4.7.4 for Ubuntu 16.04 (sudo apt-cache show libcgal-dev)
+System version of scotch library is 5.1.12b for Ubuntu 16.04 (sudo apt-cache show libscotch-dev)
+The GCC compiler is used as the default, with additional support for Intel ICC (from version 15.0.3) and LLVM Clang (from version 3.4)
+In the following sections, text in boxes should be entered into your shell window.
+Ensure that the system requirements are satisfied as described here, and make sure to source the correct OpenFOAM environment e.g. for version OpenFOAM-v1806
+
+source ~/OpenFOAM/OpenFOAM-v1806/etc/bashrc 
+Preliminaries
+A new build guide for third party libraries can be found in $WM_PROJECT_DIR/ThirdParty-v1806/BUILD.md
+Several build issues related to specific compiler and VTK library versions can be found in $WM_PROJECT_DIR/BuildIssues.txt
+ParaView
+OpenFOAM is shipped with ParaView for post-processing OpenFOAM field results. This requires a separate compilation which can be omitted if using other post-processing software. To compile ParaView:
+
+cd $WM_THIRD_PARTY_DIR 
+./makeParaView 
+CGAL
+For most systems, CGAL is not normally installed or is likely to be an older version. We therefore recommend using CGAL from the ThirdParty source pack. This corresponds to the shipped settings in the etc/config.sh/CGAL file
+
+cgal_version=CGAL-4.9.1 
+Boost
+In most cases, the system boost libraries can be used for OpenFOAM and for building CGAL. This corresponds to the shipped settings in the etc/config.sh/CGAL file
+
+boost_version=boost-system 
+If, however, the system boost libraries are either not installed, too old, or are missing some components e.g. threaded support, it is recommended to switch to using boost from the ThirdParty source pack.
+
+boost_version=boost_1_64_0 
+Combining a ThirdParty boost with a system CGAL is neither supported by the OpenFOAM build process, nor is it recommended.
+Compile OpenFOAM
+The compilation process is self-contained and will compile and install all OpenFOAM code and dependencies.
+
+Test the system readiness
+foamSystemCheck 
+Change to the main OpenFOAM directory ($WM_PROJECT_DIR). If this fails, the environment is not configured correctly
+foam 
+Compile OpenFOAM
+./Allwmake 
+In case you need to stop the compilation, continue later by running Allwmake again
+Compile OpenFOAM faster
+For faster compilation, users can take advantage of multi-processor machines to build the code in parallel by setting the environment variable WM_NCOMPPROCS, e.g.
+
+export WM_NCOMPPROCS=10 
+In addition, multiple machines can be used by setting:
+export WM_SCHEDULER=wmakeScheduler 
+export WM_HOSTS="box1:4 box2:8" 
+export WM_NCOMPPROCS$($WM_SCHEDULER -count) 
+Where:
+WM_SCHEDULER - flag to use the scheduler
+WM_HOSTS - names of hosts and number of their CPUs to use
+WM_NCOMPPROCS - number of parallel processes
+Note that the wmakeScheduler requires the lockfile utility. This can be installed using, e.g. on Ubuntu:
+
+sudo apt install procmail 
+Post-compilation steps
+Open a new shell and source the OpenFOAM environment to see all changes (refer to top of page)
+Validate the build by running
+foamInstallationTest 
+Create the user run directory:
+mkdir -p $FOAM_RUN 
+Test the installation with a simple tutorial:
+run 
+cp -r $FOAM_TUTORIALS/incompressible/simpleFoam/pitzDaily ./ 
+cd pitzDaily 
+blockMesh 
+simpleFoam 
+paraFoam 

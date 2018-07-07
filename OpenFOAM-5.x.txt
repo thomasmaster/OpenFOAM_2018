@@ -1,0 +1,263 @@
+Ubuntu 16.04
+Here you have the following choices:
+
+ You can install from source, by either:
+ Following the official instructions from here: OpenFOAM Source Repository
+ Or by following the detailed step-by-step instructions below...
+
+Discussion thread where you can ask questions about these steps: No thread available. Please a create a new thread in the forum.
+
+Steps:
+
+Switch to root mode (administrator), to install the necessary packages:
+sudo -s
+If the 'sudo' command tells you're not in the sudoers list, then run:
+su -
+Update the apt-get cache by running:
+apt-get update
+Install the necessary packages:
+apt-get install git-core build-essential cmake flex bison zlib1g-dev qt4-dev-tools libqt4-dev libqtwebkit-dev gnuplot \
+libreadline-dev libncurses-dev libxt-dev libopenmpi-dev openmpi-bin libboost-system-dev libboost-thread-dev libgmp-dev \
+libmpfr-dev python python-dev libcgal-dev
+Note: It has been reported that the following should also be executed in some cases, so that ParaView and CGAL will build properly:
+
+apt-get install libglu1-mesa-dev libqt4-opengl-dev
+Now exit from the root mode:
+exit
+Download and unpack (here you can copy-paste all in single go):
+#OpenFOAM downloading and installation
+cd ~
+mkdir OpenFOAM
+cd OpenFOAM
+git clone https://github.com/OpenFOAM/OpenFOAM-5.x.git
+git clone https://github.com/OpenFOAM/ThirdParty-5.x.git
+Optional: Let's make a few symbolic links that should ensure that the correct global MPI installation is used by this OpenFOAM installation:
+ln -s /usr/bin/mpicc.openmpi OpenFOAM-5.x/bin/mpicc
+ln -s /usr/bin/mpirun.openmpi OpenFOAM-5.x/bin/mpirun
+This way we avoid having problems in case there is more than one MPI toolbox installed in your Ubuntu system, for example if MPICH2 is installed and is the default MPI toolbox.
+
+For building OpenFOAM itself, it depends on whether you have installed the i686 or x86_64 architecture of Ubuntu. To check this, run:
+uname -m
+Now, accordingly:
+
+For i686:
+source $HOME/OpenFOAM/OpenFOAM-5.x/etc/bashrc WM_ARCH_OPTION=32 FOAMY_HEX_MESH=yes
+For x86_64, it depends on whether you need 64-bit integer support or not:
+For building with the normal 32-bit integer support (maximum 2.147¡Á109 cells, faces or points):
+source $HOME/OpenFOAM/OpenFOAM-5.x/etc/bashrc FOAMY_HEX_MESH=yes
+For building with the normal 64-bit integer support (maximum 9.22¡Á1018 cells, faces or points):
+source $HOME/OpenFOAM/OpenFOAM-5.x/etc/bashrc WM_LABEL_SIZE=64 FOAMY_HEX_MESH=yes
+Save an alias in the personal .bashrc file, simply by running the following command:
+echo "alias of5x='source \$HOME/OpenFOAM/OpenFOAM-5.x/etc/bashrc $FOAM_SETTINGS'" >> $HOME/.bashrc
+Note: This last line means that whenever you start a new terminal window or tab, you should run the alias command associated to the OpenFOAM-5.x shell environment. In other words, whenever you start a new terminal, you should run:
+of5x
+For more information on this topic, read section Using aliases to help manage multiple OpenFOAM versions in the page Installation/Working with the Shell.
+In order to build ParaView 5.4.0, including with the ability to use Python and MPI, several steps are needed:
+Make sure you're running in the ThirdParty folder and that the correct Qt version is used:
+cd $WM_THIRD_PARTY_DIR
+export QT_SELECT=qt4
+For building ParaView with Python and MPI, it depends on whether you have installed the i686 or x86_64 architecture of Ubuntu. To check this, run:
+uname -m
+Now, accordingly:
+
+For i686:
+#this will take a while... somewhere between 30 minutes to 2 hours or more
+./makeParaView -python -mpi -python-lib /usr/lib/i386-linux-gnu/libpython2.7.so.1.0 > log.makePV 2>&1
+For x86_64:
+#this will take a while... somewhere between 30 minutes to 2 hours or more
+./makeParaView -python -mpi -python-lib /usr/lib/x86_64-linux-gnu/libpython2.7.so.1.0 > log.makePV 2>&1
+Once the makeParaView script is finished running, make sure to check the contents of the file log.makePV and check if there are any errors. If you have any problems building or using ParaView, please check the ParaView installation FAQ page.
+Finally, update the shell environment:
+wmRefresh
+Now let's build OpenFOAM:
+Go into OpenFOAM's main source folder and be certain that the correct Qt version is being used:
+cd $WM_PROJECT_DIR
+export QT_SELECT=qt4
+This next command will take a while... somewhere between 30 minutes to 3-6 hours:
+./Allwmake -j 4 > log.make 2>&1
+Note: The "4" refers to the number of cores to be used for building in parallel. In addition, the amount of RAM needed for building scales with the number of cores used, something like 1GB of RAM per core; a minimum of 1.5GB is needed for linking the libraries, which is not done in parallel.
+
+Run it a second time for getting a summary of the installation:
+./Allwmake -j 4 > log.make 2>&1
+Note: Technically, the build will stop as soon as the first error is found. Running a second time only makes it easier to sort through between what's already been built and where the crash occurred.
+
+To check if everything went well:
+Check if icoFoam is working, by running this command:
+icoFoam -help
+which should tell you something like this:
+
+Usage: icoFoam [OPTIONS]
+options:
+  -case <dir>       specify alternate case directory, default is the cwd
+  -noFunctionObjects
+                    do not execute functionObjects
+  -parallel         run in parallel
+  -roots <(dir1 .. dirN)>
+                    slave root directories for distributed running
+  -srcDoc           display source code in browser
+  -doc              display application documentation in browser
+  -help             print the usage
+Note: And keep in mind that you need to be careful with the letter case of the command. It's icoFoam, not icoFOAM.
+
+If the previous command failed to work properly, then edit the file log.make and check if there are any error messages. A few examples on how you can edit this file:
+By using kwrite:
+kwrite log.make
+By using gedit:
+gedit log.make
+By using nano:
+nano log.make
+You can then exit by using the key combination Ctrl+X and following any instructions it gives you.
+
+Note: It's the first error message that matters.
+
+If you don't understand the output, then please compress the log-file log.make and attach the compressed file to a post in the designated thread. 
+If you do not know how to create a compressed file, then try one of the following examples:
+You can compress the file with gzip by running this command:
+gzip < log.make > log.make.gz
+Then attach the resulting package file named log.make.gz to a post in the designated thread.
+
+Or you can compress one or more log-files into a tarball package file, by running this command:
+tar -czf logs.tar.gz log.*
+Then attach the resulting package file named logs.tar.gz to a post in the designated thread.
+
+Instructions on how to further diagnose the issue yourself, have a look at the section Common errors when building OpenFOAM from source code in the page FAQ/Installation and Running.
+Now you can go read the User Guide: official OpenFOAM User Guide
+When you need to update your local clone, for getting the latest source code updates, you can follow the instructions provided in the page Installation/Working with git repositories.
+Note: When you want to update your build, follow the instructions on section Steps for updating on the parent page.
+
+Reminder: Whenever you start a new terminal window or tab, you should run the alias command associated to the OpenFOAM-5.x shell environment. In other words, run the following command whenever you start a new terminal:
+of5x
+For more information on this topic, read section Using aliases to help manage multiple OpenFOAM versions in the page Installation/Working with the Shell.
+
+Discussion thread where you can ask questions about these steps: No thread available. Please a create a new thread in the forum.
+
+
+Ubuntu 18.04
+Here you have the following choices:
+
+ You can install from source, by either:
+ Following the official instructions from here: OpenFOAM Source Repository
+ Or by following the detailed step-by-step instructions below...
+
+Discussion thread where you can ask questions about these steps: No thread available. Please a create a new thread in the forum.
+
+Steps:
+
+Switch to root mode (administrator), to install the necessary packages:
+sudo -s
+If the 'sudo' command tells you're not in the sudoers list, then run:
+su -
+Update the apt-get cache by running:
+apt-get update
+Install the necessary packages:
+apt-get install git-core build-essential cmake flex bison zlib1g-dev qt4-dev-tools libqt4-dev libqtwebkit-dev gnuplot \
+libreadline-dev libncurses-dev libxt-dev libopenmpi-dev openmpi-bin libboost-system-dev libboost-thread-dev libgmp-dev \
+libmpfr-dev python python-dev libcgal-dev curl
+Note: It has been reported that the following should also be executed in some cases, so that ParaView and CGAL will build properly:
+
+apt-get install libglu1-mesa-dev libqt4-opengl-dev
+Now exit from the root mode:
+exit
+Download and unpack (here you can copy-paste all in single go):
+#OpenFOAM downloading and installation
+cd ~
+mkdir OpenFOAM
+cd OpenFOAM
+git clone https://github.com/OpenFOAM/OpenFOAM-5.x.git
+git clone https://github.com/OpenFOAM/ThirdParty-5.x.git
+Optional: Let's make a few symbolic links that should ensure that the correct global MPI installation is used by this OpenFOAM installation:
+ln -s /usr/bin/mpicc.openmpi OpenFOAM-5.x/bin/mpicc
+ln -s /usr/bin/mpirun.openmpi OpenFOAM-5.x/bin/mpirun
+This way we avoid having problems in case there is more than one MPI toolbox installed in your Ubuntu system, for example if MPICH2 is installed and is the default MPI toolbox.
+
+For building OpenFOAM itself, it depends on whether you have installed the i686 or x86_64 architecture of Ubuntu. To check this, run:
+uname -m
+Now, accordingly:
+
+For i686:
+source $HOME/OpenFOAM/OpenFOAM-5.x/etc/bashrc WM_ARCH_OPTION=32 FOAMY_HEX_MESH=yes
+For x86_64, it depends on whether you need 64-bit integer support or not:
+For building with the normal 32-bit integer support (maximum 2.147¡Á109 cells, faces or points):
+source $HOME/OpenFOAM/OpenFOAM-5.x/etc/bashrc FOAMY_HEX_MESH=yes
+For building with the normal 64-bit integer support (maximum 9.22¡Á1018 cells, faces or points):
+source $HOME/OpenFOAM/OpenFOAM-5.x/etc/bashrc WM_LABEL_SIZE=64 FOAMY_HEX_MESH=yes
+Save an alias in the personal .bashrc file, simply by running the following command:
+echo "alias of5x='source \$HOME/OpenFOAM/OpenFOAM-5.x/etc/bashrc $FOAM_SETTINGS'" >> $HOME/.bashrc
+Note: This last line means that whenever you start a new terminal window or tab, you should run the alias command associated to the OpenFOAM-5.x shell environment. In other words, whenever you start a new terminal, you should run:
+of5x
+For more information on this topic, read section Using aliases to help manage multiple OpenFOAM versions in the page Installation/Working with the Shell.
+In order to build ParaView 5.4.0, including with the ability to use Python and MPI, several steps are needed:
+Make sure you're running in the ThirdParty folder and that the correct Qt version is used:
+cd $WM_THIRD_PARTY_DIR
+export QT_SELECT=qt4
+For building ParaView with Python and MPI, it depends on whether you have installed the i686 or x86_64 architecture of Ubuntu. To check this, run:
+uname -m
+Now, accordingly:
+
+For i686:
+#this will take a while... somewhere between 30 minutes to 2 hours or more
+./makeParaView -python -mpi -python-lib /usr/lib/i386-linux-gnu/libpython2.7.so.1.0 > log.makePV 2>&1
+For x86_64:
+#this will take a while... somewhere between 30 minutes to 2 hours or more
+./makeParaView -python -mpi -python-lib /usr/lib/x86_64-linux-gnu/libpython2.7.so.1.0 > log.makePV 2>&1
+Once the makeParaView script is finished running, make sure to check the contents of the file log.makePV and check if there are any errors. If you have any problems building or using ParaView, please check the ParaView installation FAQ page.
+Finally, update the shell environment:
+wmRefresh
+Now let's build OpenFOAM:
+Go into OpenFOAM's main source folder and be certain that the correct Qt version is being used:
+cd $WM_PROJECT_DIR
+export QT_SELECT=qt4
+This next command will take a while... somewhere between 30 minutes to 3-6 hours:
+./Allwmake -j 4 > log.make 2>&1
+Note: The "4" refers to the number of cores to be used for building in parallel. In addition, the amount of RAM needed for building scales with the number of cores used, something like 1GB of RAM per core; a minimum of 1.5GB is needed for linking the libraries, which is not done in parallel.
+
+Run it a second time for getting a summary of the installation:
+./Allwmake -j 4 > log.make 2>&1
+Note: Technically, the build will stop as soon as the first error is found. Running a second time only makes it easier to sort through between what's already been built and where the crash occurred.
+
+To check if everything went well:
+Check if icoFoam is working, by running this command:
+icoFoam -help
+which should tell you something like this:
+
+Usage: icoFoam [OPTIONS]
+options:
+  -case <dir>       specify alternate case directory, default is the cwd
+  -noFunctionObjects
+                    do not execute functionObjects
+  -parallel         run in parallel
+  -roots <(dir1 .. dirN)>
+                    slave root directories for distributed running
+  -srcDoc           display source code in browser
+  -doc              display application documentation in browser
+  -help             print the usage
+Note: And keep in mind that you need to be careful with the letter case of the command. It's icoFoam, not icoFOAM.
+
+If the previous command failed to work properly, then edit the file log.make and check if there are any error messages. A few examples on how you can edit this file:
+By using kwrite:
+kwrite log.make
+By using gedit:
+gedit log.make
+By using nano:
+nano log.make
+You can then exit by using the key combination Ctrl+X and following any instructions it gives you.
+
+Note: It's the first error message that matters.
+
+If you don't understand the output, then please compress the log-file log.make and attach the compressed file to a post in the designated thread. 
+If you do not know how to create a compressed file, then try one of the following examples:
+You can compress the file with gzip by running this command:
+gzip < log.make > log.make.gz
+Then attach the resulting package file named log.make.gz to a post in the designated thread.
+
+Or you can compress one or more log-files into a tarball package file, by running this command:
+tar -czf logs.tar.gz log.*
+Then attach the resulting package file named logs.tar.gz to a post in the designated thread.
+
+Instructions on how to further diagnose the issue yourself, have a look at the section Common errors when building OpenFOAM from source code in the page FAQ/Installation and Running.
+Now you can go read the User Guide: official OpenFOAM User Guide
+When you need to update your local clone, for getting the latest source code updates, you can follow the instructions provided in the page Installation/Working with git repositories.
+Note: When you want to update your build, follow the instructions on section Steps for updating on the parent page.
+
+Reminder: Whenever you start a new terminal window or tab, you should run the alias command associated to the OpenFOAM-5.x shell environment. In other words, run the following command whenever you start a new terminal:
+of5x
